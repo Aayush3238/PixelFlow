@@ -18,14 +18,10 @@ export const deliverImage = async (req, res) => {
     }
 
     if (!width) {
-      const { Body, ContentType } = await getFromR2(image.originalKey);
-      const chunks = [];
-      for await (const chunk of Body) {
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
+      const blob = await getFromR2(image.originalKey);
+      const buffer = Buffer.from(await blob.arrayBuffer());
 
-      res.set('Content-Type', ContentType || image.mimetype);
+      res.set('Content-Type', image.mimetype);
       res.set('Cache-Control', 'public, max-age=31536000');
       return res.send(buffer);
     }

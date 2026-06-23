@@ -1,15 +1,15 @@
-import { S3Client } from '@aws-sdk/client-s3';
+import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
-const r2 = new S3Client({
-  region: process.env.AWS_REGION || 'auto',
-  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY,
-  },
-});
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY,
+  {
+    realtime: { transport: ws },
+  }
+);
 
-export const BUCKET_NAME = process.env.CLOUDFLARE_BUCKET_NAME;
-export const PUBLIC_URL = process.env.CLOUDFLARE_PUBLIC_URL;
+export const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME;
+export const SUPABASE_URL = process.env.SUPABASE_URL;
 
-export default r2;
+export default supabase;

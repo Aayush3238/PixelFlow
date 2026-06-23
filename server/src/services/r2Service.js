@@ -1,56 +1,50 @@
-import {
-  PutObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import r2, { BUCKET_NAME, PUBLIC_URL } from '../config/r2.js';
+import supabase, { BUCKET_NAME, SUPABASE_URL } from '../config/r2.js';
 
 export const uploadToR2 = async (key, body, contentType) => {
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    Body: body,
-    ContentType: contentType,
-  });
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(key, body, {
+      contentType,
+      upsert: false,
+    });
 
-  await r2.send(command);
+  if (error) throw error;
   return key;
 };
 
 export const getFromR2 = async (key) => {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
+  const { data, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .download(key);
 
-  return r2.send(command);
+  if (error) throw error;
+  return data;
 };
 
 export const existsInR2 = async (key) => {
-  try {
-    const command = new HeadObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
+  const { data } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(key.split('/').slice(0, -1).join('/'), {
+      search: key.split('/').pop(),
     });
-    await r2.send(command);
-    return true;
-  } catch {
-    return false;
-  }
+
+  return data && data.length > 0;
 };
 
 export const getPublicUrl = (key) => {
-  return `${PUBLIC_URL}/${key}`;
+  const { data } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(key);
+
+  return data.publicUrl;
 };
 
 export const deleteFromR2 = async (key) => {
-  const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-  await r2.send(command);
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .remove([key]);
+
+  if (error) throw error;
 };
 
 export const getTransformedKey = (imageId, width, format) => {

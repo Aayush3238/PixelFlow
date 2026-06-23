@@ -30,8 +30,8 @@ export const getImageFromCacheOrTransform = async (imageId, width, format) => {
   if (!image) return null;
 
   const transformedKey = getTransformedKey(imageId, width, format);
-  const { Body } = await getFromR2(image.originalKey);
-  const originalBuffer = Buffer.from(await Body.transformToByteArray());
+  const blob = await getFromR2(image.originalKey);
+  const originalBuffer = Buffer.from(await blob.arrayBuffer());
 
   let pipeline = sharp(originalBuffer).resize({ width, withoutEnlargement: true });
 

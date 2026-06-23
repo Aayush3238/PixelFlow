@@ -5,7 +5,6 @@ const analyticsSchema = new mongoose.Schema(
     date: {
       type: String,
       required: true,
-      index: true,
     },
     uploads: {
       type: Number,
