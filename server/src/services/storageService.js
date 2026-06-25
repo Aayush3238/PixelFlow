@@ -1,11 +1,11 @@
 import supabase, { BUCKET_NAME } from '../config/storage.js';
 
-export const uploadToStorage = async (key, body, contentType) => {
+export const uploadToStorage = async (key, body, contentType, options = {}) => {
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .upload(key, body, {
       contentType,
-      upsert: false,
+      upsert: options.upsert || false,
     });
 
   if (error) throw error;

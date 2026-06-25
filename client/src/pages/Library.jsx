@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { images } from '../api/client';
 import { CheckSquare, Code, Copy, Edit3, ExternalLink, Search, Trash2 } from 'lucide-react';
 import { formatBytes } from '../utils/format';
-import { serverOrigin, imageUrl } from '../utils/serverUrl';
+import { imageUrl } from '../utils/serverUrl';
 import ResponsiveImage from '../components/ResponsiveImage';
 import Skeleton from '../components/Skeleton';
 
@@ -101,15 +101,29 @@ export default function Library() {
   };
 
   const copyText = async (text) => {
+    if (!text) return;
+
     try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const input = document.createElement('input');
-      input.value = text;
-      document.body.appendChild(input);
-      input.select();
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch {}
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
       document.execCommand('copy');
-      document.body.removeChild(input);
+    } finally {
+      document.body.removeChild(textarea);
     }
   };
 

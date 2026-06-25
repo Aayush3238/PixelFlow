@@ -49,7 +49,7 @@ export const getImageFromCacheOrTransform = async (imageId, width, format) => {
 
   const transformedBuffer = await pipeline.toBuffer();
 
-  await uploadToStorage(transformedKey, transformedBuffer, FORMAT_MAP[format]);
+  await uploadToStorage(transformedKey, transformedBuffer, FORMAT_MAP[format], { upsert: true });
 
   try {
     await redis.set(cacheKey, transformedBuffer.toString('base64'), { ex: CACHE_TTL });
