@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { images } from '../api/client';
-import { CheckSquare, Code, Copy, Edit3, ExternalLink, Search, Trash2 } from 'lucide-react';
+import { CheckSquare, Code, Copy, Edit3, ExternalLink, Link, Search, Share2, Trash2 } from 'lucide-react';
 import { formatBytes } from '../utils/format';
 import { imageUrl } from '../utils/serverUrl';
 import ResponsiveImage from '../components/ResponsiveImage';
@@ -27,6 +27,8 @@ export default function Library() {
   const [folder, setFolder] = useState('');
   const [page, setPage] = useState(1);
   const [editName, setEditName] = useState('');
+  const [shareImage, setShareImage] = useState(null);
+  const [copiedField, setCopiedField] = useState('');
   const loaderRef = useRef(null);
 
   const canLoadMore = pagination && page < pagination.pages;
@@ -74,6 +76,15 @@ export default function Library() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [imagesList, selectedImage]);
 
+  useEffect(() => {
+    if (!shareImage) return;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setShareImage(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [shareImage]);
+
   const selectedCount = selectedIds.size;
   const folders = useMemo(() => [...new Set(imagesList.map((img) => img.folder).filter(Boolean))], [imagesList]);
 
@@ -100,31 +111,27 @@ export default function Library() {
     setSelectedIds(new Set());
   };
 
+  const [toast, setToast] = useState('');
+
   const copyText = async (text) => {
     if (!text) return;
-
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        return;
-      }
-    } catch {}
-
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-
-    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '0';
+      textarea.style.top = '0';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
       document.execCommand('copy');
-    } finally {
       document.body.removeChild(textarea);
     }
+    setToast('Copied!');
+    setTimeout(() => setToast(''), 2000);
   };
 
   const updateSelected = async () => {
@@ -186,8 +193,7 @@ export default function Library() {
                     {!!img.tags?.length && <div className="tags">{img.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}
                   </div>
                   <div className="actions">
-                    <button className="btn btn-ghost" onClick={() => copyText(url)}><Copy size={12} /> URL</button>
-                    <button className="btn btn-ghost" onClick={() => copyText(`![${img.originalName}](${url})`)}><Code size={12} /> MD</button>
+                    <button className="btn btn-ghost" onClick={() => setShareImage(img)}><Share2 size={12} /> Share</button>
                     <button className="btn btn-ghost" onClick={() => handleDelete(img.imageId)}><Trash2 size={12} /></button>
                   </div>
                 </div>
@@ -228,6 +234,51 @@ export default function Library() {
           </div>
         </div>
       )}
+      {shareImage && (() => {
+        const shareUrl = imageUrl(shareImage.imageId);
+        const md = `![${shareImage.originalName}](${shareUrl})`;
+        const html = `<img src="${shareUrl}" alt="${escapeHtml(shareImage.originalName)}">`;
+        const snippets = [
+          { label: 'Direct URL', value: shareUrl, icon: <Link size={14} /> },
+          { label: 'Markdown', value: md, icon: <Code size={14} /> },
+          { label: 'HTML', value: html, icon: <Code size={14} /> },
+        ];
+        return (
+          <div className="preview-modal" onClick={() => setShareImage(null)}>
+            <div className="content share-content" onClick={(e) => e.stopPropagation()}>
+              <div className="share-preview">
+                <img src={shareUrl} alt={shareImage.originalName} />
+              </div>
+              <div className="share-snippets">
+                <h3>Share image</h3>
+                {snippets.map((s) => (
+                  <div key={s.label} className="snippet-row">
+                    <div className="snippet-label">{s.icon} {s.label}</div>
+                    <div className="snippet-body">
+                      <code className="snippet-code">{s.value}</code>
+                      <button
+                        className={`btn btn-ghost snippet-copy ${copiedField === s.label ? 'copied' : ''}`}
+                        onClick={() => {
+                          copyText(s.value);
+                          setCopiedField(s.label);
+                          setTimeout(() => setCopiedField(''), 2000);
+                        }}
+                      >
+                        {copiedField === s.label ? <><CheckSquare size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div className="modal-actions" style={{ marginTop: 16 }}>
+                  <a className="btn btn-ghost" href={shareUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Open</a>
+                  <button className="btn btn-ghost" onClick={() => setShareImage(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {toast && <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#22c55e', color: '#fff', padding: '8px 20px', borderRadius: 8, fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{toast}</div>}
     </div>
   );
 }

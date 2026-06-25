@@ -44,6 +44,7 @@ export const deliverImage = async (req, res) => {
     const setCommonHeaders = (buffer, mimetype) => {
       res.set('Content-Type', mimetype);
       res.set('Cache-Control', 'public, max-age=31536000');
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
       const etag = `"${crypto.createHash('md5').update(buffer).digest('hex')}"`;
       res.set('ETag', etag);
       if (download) {
@@ -102,6 +103,7 @@ export const deliverImage = async (req, res) => {
       ? 'public, max-age=31536000'
       : 'public, max-age=86400'
     );
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('X-Cache', result.fromCache ? 'HIT' : 'MISS');
     const etag = `"${crypto.createHash('md5').update(result.buffer).digest('hex')}"`;
     res.set('ETag', etag);

@@ -282,6 +282,26 @@ export const getUserImages = async (req, res) => {
   }
 };
 
+export const getUserFolders = async (req, res) => {
+  try {
+    const folders = await Image.distinct('folder', { ownerId: req.user._id, folder: { $ne: '' } });
+    res.json({ folders: folders.sort() });
+  } catch (error) {
+    logger.error('Get folders failed', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch folders' });
+  }
+};
+
+export const getUserTags = async (req, res) => {
+  try {
+    const tags = await Image.distinct('tags', { ownerId: req.user._id });
+    res.json({ tags: tags.sort() });
+  } catch (error) {
+    logger.error('Get tags failed', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch tags' });
+  }
+};
+
 export const searchImages = async (req, res) => {
   try {
     const { q } = req.query;

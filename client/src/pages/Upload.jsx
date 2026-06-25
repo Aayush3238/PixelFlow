@@ -11,6 +11,11 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [existingFolders, setExistingFolders] = useState([]);
+  const [existingTags, setExistingTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const [options, setOptions] = useState({
     tags: '',
     folder: '',
@@ -20,6 +25,11 @@ export default function UploadPage() {
   });
   const inputRef = useRef();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    images.folders().then((data) => setExistingFolders(data.folders)).catch(() => {});
+    images.tags().then((data) => setExistingTags(data.tags)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -43,6 +53,22 @@ export default function UploadPage() {
     e.preventDefault();
     setDragOver(false);
     handleFiles(e.dataTransfer.files);
+  };
+
+  const selectedTags = options.tags ? options.tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
+
+  const addTag = (tag) => {
+    const t = tag.trim().toLowerCase();
+    if (t && !selectedTags.includes(t)) {
+      const next = [...selectedTags, t];
+      setOptions({ ...options, tags: next.join(', ') });
+      setExistingTags((prev) => [...new Set([...prev, t])].sort());
+    }
+    setTagInput('');
+  };
+
+  const removeTag = (tag) => {
+    setOptions({ ...options, tags: selectedTags.filter((t) => t !== tag).join(', ') });
   };
 
   const handleUpload = async () => {
@@ -148,8 +174,97 @@ export default function UploadPage() {
 
         <div className="card upload-options">
           <h2>Options</h2>
-          <label>Tags<input value={options.tags} onChange={(e) => setOptions({ ...options, tags: e.target.value })} placeholder="hero, product" /></label>
-          <label>Folder<input value={options.folder} onChange={(e) => setOptions({ ...options, folder: e.target.value })} placeholder="campaigns" /></label>
+          <label>
+            Tags
+            <div className="tag-input-area">
+              <div className="tag-chips">
+                {selectedTags.map((tag) => (
+                  <span key={tag} className="tag-chip">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)}>&times;</button>
+                  </span>
+                ))}
+                <input
+                  className="tag-text-input"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder={selectedTags.length ? '' : 'Add tags...'}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                      e.preventDefault();
+                      addTag(tagInput);
+                    }
+                    if (e.key === 'Backspace' && !tagInput && selectedTags.length) {
+                      removeTag(selectedTags[selectedTags.length - 1]);
+                    }
+                  }}
+                />
+              </div>
+              {existingTags.filter((t) => !selectedTags.includes(t)).length > 0 && (
+                <div className="tag-suggestions">
+                  {existingTags.filter((t) => !selectedTags.includes(t)).map((tag) => (
+                    <button key={tag} type="button" className="tag-chip tag-suggestion" onClick={() => addTag(tag)}>
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </label>
+          <label>
+            Folder
+            {creatingFolder ? (
+              <div className="folder-create-row">
+                <input
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Folder name"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newFolderName.trim()) {
+                      const name = newFolderName.trim();
+                      setOptions({ ...options, folder: name });
+                      setExistingFolders((prev) => [...new Set([...prev, name])].sort());
+                      setCreatingFolder(false);
+                      setNewFolderName('');
+                    }
+                    if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); }
+                  }}
+                />
+                <div className="folder-create-actions">
+                  <button type="button" className="btn btn-ghost" onClick={() => { setCreatingFolder(false); setNewFolderName(''); }}>Cancel</button>
+                  <button type="button" className="btn btn-primary" disabled={!newFolderName.trim()} onClick={() => {
+                    const name = newFolderName.trim();
+                    setOptions({ ...options, folder: name });
+                    setExistingFolders((prev) => [...new Set([...prev, name])].sort());
+                    setCreatingFolder(false);
+                    setNewFolderName('');
+                  }}>Create</button>
+                </div>
+              </div>
+            ) : (
+              <div className="folder-select-row">
+                <select
+                  value={existingFolders.includes(options.folder) ? options.folder : '__custom__'}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setCreatingFolder(true);
+                    } else {
+                      setOptions({ ...options, folder: e.target.value });
+                    }
+                  }}
+                >
+                  <option value="">No folder</option>
+                  {existingFolders.map((f) => <option key={f} value={f}>{f}</option>)}
+                  {options.folder && !existingFolders.includes(options.folder) && <option value="__custom__">{options.folder}</option>}
+                  <option value="__new__">+ New folder</option>
+                </select>
+                {options.folder && existingFolders.includes(options.folder) && (
+                  <button type="button" className="btn btn-ghost folder-clear" onClick={() => setOptions({ ...options, folder: '' })}>x</button>
+                )}
+              </div>
+            )}
+          </label>
           <label>Expires At<input type="datetime-local" value={options.expiresAt} onChange={(e) => setOptions({ ...options, expiresAt: e.target.value })} /></label>
           <label>Watermark<input value={options.watermarkText} onChange={(e) => setOptions({ ...options, watermarkText: e.target.value })} placeholder="Optional text" /></label>
           <label className="checkbox-row">

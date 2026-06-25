@@ -82,6 +82,8 @@ export const images = {
     return uploadRequest('/images/batch-upload', formData, onProgress);
   },
   uploadUrl: (body) => request('/images/upload-url', { method: 'POST', body: JSON.stringify(body) }),
+  folders: () => request('/images/folders'),
+  tags: () => request('/images/tags'),
   list: ({ page = 1, limit = 20, q = '', tag = '', folder = '' } = {}) => {
     const params = new URLSearchParams({ page, limit });
     if (q) params.set('q', q);
