@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { images } from '../api/client';
 import { CheckSquare, Code, Copy, Edit3, ExternalLink, Search, Trash2 } from 'lucide-react';
 import { formatBytes } from '../utils/format';
+import { serverOrigin, imageUrl } from '../utils/serverUrl';
 import ResponsiveImage from '../components/ResponsiveImage';
 import Skeleton from '../components/Skeleton';
 
@@ -28,7 +29,6 @@ export default function Library() {
   const [editName, setEditName] = useState('');
   const loaderRef = useRef(null);
 
-  const baseUrl = window.location.origin;
   const canLoadMore = pagination && page < pagination.pages;
 
   const loadImages = useCallback((nextPage = 1, append = false) => {
@@ -151,7 +151,7 @@ export default function Library() {
         <>
           <div className="image-grid">
             {imagesList.map((img) => {
-              const url = `${baseUrl}/i/${img.imageId}`;
+              const url = imageUrl(img.imageId);
               return (
                 <div key={img.imageId} className={`image-card ${selectedIds.has(img.imageId) ? 'selected' : ''}`}>
                   <button className="select-btn" onClick={() => toggleSelected(img.imageId)} title="Select image">
@@ -163,7 +163,7 @@ export default function Library() {
                     originalName={img.originalName}
                     blurDataURL={img.blurDataURL}
                     onClick={() => setSelectedImage(img)}
-                    onMouseEnter={() => { const preload = new Image(); preload.src = `/i/${img.imageId}`; }}
+                    onMouseEnter={() => { const preload = new Image(); preload.src = imageUrl(img.imageId); }}
                     style={{ cursor: 'pointer', height: 200 }}
                   />
                   <div className="info">
@@ -188,8 +188,8 @@ export default function Library() {
         <div className="preview-modal" onClick={() => setSelectedImage(null)}>
           <div className="content comparison-content" onClick={(e) => e.stopPropagation()}>
             <div className="comparison">
-              <figure><img src={selectedImage.url || `/i/${selectedImage.imageId}`} alt="" /><figcaption>Original</figcaption></figure>
-              <figure><img src={`/i/${selectedImage.imageId}?w=600&format=webp`} alt={selectedImage.originalName} /><figcaption>Optimized preview</figcaption></figure>
+              <figure><img src={selectedImage.url || imageUrl(selectedImage.imageId)} alt="" /><figcaption>Original</figcaption></figure>
+              <figure><img src={imageUrl(selectedImage.imageId, 'w=600&format=webp')} alt={selectedImage.originalName} /><figcaption>Optimized preview</figcaption></figure>
             </div>
             <div className="details">
               <div className="rename-row">
@@ -205,9 +205,9 @@ export default function Library() {
                 <div>Formats: {selectedImage.formatsGenerated.join(', ') || 'none yet'}</div>
               </div>
               <div className="modal-actions">
-                <button className="btn btn-primary" onClick={() => copyText(`${baseUrl}/i/${selectedImage.imageId}`)}><Copy size={14} /> Copy URL</button>
-                <button className="btn btn-ghost" onClick={() => copyText(`<img src="${baseUrl}/i/${selectedImage.imageId}" alt="${escapeHtml(selectedImage.originalName)}">`)}><Code size={14} /> HTML</button>
-                <a className="btn btn-ghost" href={`/i/${selectedImage.imageId}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Open</a>
+                <button className="btn btn-primary" onClick={() => copyText(imageUrl(selectedImage.imageId))}><Copy size={14} /> Copy URL</button>
+                <button className="btn btn-ghost" onClick={() => copyText(`<img src="${imageUrl(selectedImage.imageId)}" alt="${escapeHtml(selectedImage.originalName)}">`)}><Code size={14} /> HTML</button>
+                <a className="btn btn-ghost" href={imageUrl(selectedImage.imageId)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Open</a>
                 <button className="btn btn-ghost" onClick={() => setSelectedImage(null)}>Close</button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { imageUrl } from '../utils/serverUrl';
 
 const WIDTH_PRESETS = [300, 600, 1200];
 
@@ -18,10 +19,10 @@ export default function ResponsiveImage({
   if (availableWidths.length === 0) availableWidths.push(Math.min(originalWidth, 300));
 
   const fallbackWidth = availableWidths[0];
-  const fallbackUrl = `/i/${imageId}?w=${fallbackWidth}`;
+  const fallbackUrl = imageUrl(imageId, `w=${fallbackWidth}`);
 
   const buildSrcSet = (format) =>
-    availableWidths.map((w) => `/i/${imageId}?w=${w}&format=${format} ${w}w`).join(', ');
+    availableWidths.map((w) => `${imageUrl(imageId, `w=${w}&format=${format}`)} ${w}w`).join(', ');
 
   const buildSizes = () => {
     if (style?.width) return style.width;
