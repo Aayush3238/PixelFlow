@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { getFromR2, uploadToR2, getTransformedKey } from './r2Service.js';
+import { getFromStorage, uploadToStorage, getTransformedKey } from './storageService.js';
 import redis from '../config/redis.js';
 import Image from '../models/Image.js';
 import Analytics from '../models/Analytics.js';
@@ -12,28 +12,28 @@ const FORMAT_MAP = {
   jpeg: 'image/jpeg',
 };
 
-const WIDTH_PRESETS = {
-  '300': 300,
-  '600': 600,
-  '1200': 1200,
-};
-
 export const getImageFromCacheOrTransform = async (imageId, width, format) => {
   const cacheKey = `img:${imageId}:${width}:${format}`;
 
-  const cached = await redis.getBuffer(cacheKey);
-  if (cached) {
-    return { buffer: cached, fromCache: true, contentType: FORMAT_MAP[format] };
-  }
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const buffer = Buffer.from(cached, 'base64');
+      return { buffer, fromCache: true, contentType: FORMAT_MAP[format] };
+    }
+  } catch {}
 
   const image = await Image.findOne({ imageId });
   if (!image) return null;
 
   const transformedKey = getTransformedKey(imageId, width, format);
-  const blob = await getFromR2(image.originalKey);
+  const blob = await getFromStorage(image.originalKey);
   const originalBuffer = Buffer.from(await blob.arrayBuffer());
 
-  let pipeline = sharp(originalBuffer).resize({ width, withoutEnlargement: true });
+  let pipeline = sharp(originalBuffer, { sequentialRead: true, limitInputPixels: 10000 * 10000 })
+    .resize({ width, withoutEnlargement: true })
+    .rotate()
+    .withMetadata({ exif: false });
 
   switch (format) {
     case 'avif':
@@ -49,9 +49,11 @@ export const getImageFromCacheOrTransform = async (imageId, width, format) => {
 
   const transformedBuffer = await pipeline.toBuffer();
 
-  await uploadToR2(transformedKey, transformedBuffer, FORMAT_MAP[format]);
+  await uploadToStorage(transformedKey, transformedBuffer, FORMAT_MAP[format]);
 
-  await redis.setex(cacheKey, CACHE_TTL, transformedBuffer);
+  try {
+    await redis.set(cacheKey, transformedBuffer.toString('base64'), { ex: CACHE_TTL });
+  } catch {}
 
   if (!image.formatsGenerated.includes(format)) {
     await Image.findOneAndUpdate(
@@ -71,7 +73,7 @@ export const getImageFromCacheOrTransform = async (imageId, width, format) => {
 
     const today = new Date().toISOString().split('T')[0];
     await Analytics.findOneAndUpdate(
-      { date: today },
+      { date: today, ownerId: image.ownerId },
       {
         $inc: {
           requests: 1,
@@ -92,9 +94,59 @@ export const detectFormat = (acceptHeader) => {
 };
 
 export const getOriginalMetadata = async (buffer) => {
-  const metadata = await sharp(buffer).metadata();
+  const metadata = await sharp(buffer, { sequentialRead: true, limitInputPixels: 10000 * 10000 }).metadata();
   return {
     width: metadata.width,
     height: metadata.height,
+    format: metadata.format,
   };
+};
+
+export const generateBlurPlaceholder = async (buffer) => {
+  try {
+    const blurred = await sharp(buffer, { sequentialRead: true, limitInputPixels: 10000 * 10000 })
+      .resize({ width: 20, withoutEnlargement: true })
+      .blur(10)
+      .jpeg({ quality: 20 })
+      .toBuffer();
+    return `data:image/jpeg;base64,${blurred.toString('base64')}`;
+  } catch {
+    return null;
+  }
+};
+
+export const normalizeOriginalImage = async (buffer, { format, stripExif = true, watermarkText = '' } = {}) => {
+  let pipeline = sharp(buffer, { sequentialRead: true, limitInputPixels: 10000 * 10000 }).rotate();
+
+  if (watermarkText) {
+    const safeWatermark = watermarkText.replace(/[<>&"'`\\]/g, '').slice(0, 100);
+    pipeline = pipeline.composite([
+      {
+        input: Buffer.from(`
+          <svg width="800" height="120">
+            <rect width="800" height="120" fill="rgba(0,0,0,0.35)"/>
+            <text x="28" y="74" font-family="Arial" font-size="42" fill="white">${safeWatermark}</text>
+          </svg>
+        `),
+        gravity: 'southeast',
+      },
+    ]);
+  }
+
+  if (!stripExif) {
+    pipeline = pipeline.withMetadata();
+  }
+
+  switch (format) {
+    case 'jpeg':
+      return pipeline.jpeg({ quality: 92, progressive: true }).toBuffer();
+    case 'png':
+      return pipeline.png({ compressionLevel: 9 }).toBuffer();
+    case 'webp':
+      return pipeline.webp({ quality: 90 }).toBuffer();
+    case 'avif':
+      return pipeline.avif({ quality: 85, effort: 4 }).toBuffer();
+    default:
+      return pipeline.toBuffer();
+  }
 };

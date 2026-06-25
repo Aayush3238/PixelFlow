@@ -2,12 +2,25 @@ import Image from '../models/Image.js';
 import Analytics from '../models/Analytics.js';
 
 export const getDashboardStats = async (userId) => {
-  const images = await Image.find({ ownerId: userId });
+  const [imageStats] = await Image.aggregate([
+    { $match: { ownerId: userId } },
+    {
+      $group: {
+        _id: null,
+        totalImages: { $sum: 1 },
+        totalRequests: { $sum: '$requests' },
+        storageUsed: { $sum: '$originalSize' },
+        bandwidthSaved: { $sum: '$bandwidthSaved' },
+      },
+    },
+  ]);
 
-  const totalImages = images.length;
-  const totalRequests = images.reduce((sum, img) => sum + img.requests, 0);
-  const storageUsed = images.reduce((sum, img) => sum + img.originalSize, 0);
-  const bandwidthSaved = images.reduce((sum, img) => sum + img.bandwidthSaved, 0);
+  const totals = imageStats || {
+    totalImages: 0,
+    totalRequests: 0,
+    storageUsed: 0,
+    bandwidthSaved: 0,
+  };
 
   const last30Days = [];
   for (let i = 29; i >= 0; i--) {
@@ -18,6 +31,7 @@ export const getDashboardStats = async (userId) => {
 
   const dailyStats = await Analytics.find({
     date: { $in: last30Days },
+    ownerId: userId,
   }).sort({ date: 1 });
 
   const dailyMap = {};
@@ -33,10 +47,10 @@ export const getDashboardStats = async (userId) => {
   }));
 
   return {
-    totalImages,
-    totalRequests,
-    storageUsed,
-    bandwidthSaved,
+    totalImages: totals.totalImages,
+    totalRequests: totals.totalRequests,
+    storageUsed: totals.storageUsed,
+    bandwidthSaved: totals.bandwidthSaved,
     chartData,
   };
 };
@@ -44,7 +58,7 @@ export const getDashboardStats = async (userId) => {
 export const recordUpload = async (userId, fileSize) => {
   const today = new Date().toISOString().split('T')[0];
   await Analytics.findOneAndUpdate(
-    { date: today },
+    { date: today, ownerId: userId },
     {
       $inc: {
         uploads: 1,

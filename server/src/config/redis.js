@@ -1,18 +1,15 @@
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
+import logger from '../utils/logger.js';
 
-const redis = new Redis(process.env.REDIS_URL, {
-  maxRetriesPerRequest: 3,
-  retryStrategy(times) {
-    return Math.min(times * 50, 2000);
-  },
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-redis.on('error', (err) => {
-  console.error('Redis connection error:', err.message);
-});
-
-redis.on('connect', () => {
-  console.log('Redis connected');
+redis.ping().then(() => {
+  logger.info('Redis connected');
+}).catch((err) => {
+  logger.error('Redis connection error', { error: err.message });
 });
 
 export default redis;

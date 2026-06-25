@@ -1,6 +1,6 @@
-import supabase, { BUCKET_NAME, SUPABASE_URL } from '../config/r2.js';
+import supabase, { BUCKET_NAME } from '../config/storage.js';
 
-export const uploadToR2 = async (key, body, contentType) => {
+export const uploadToStorage = async (key, body, contentType) => {
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .upload(key, body, {
@@ -12,23 +12,13 @@ export const uploadToR2 = async (key, body, contentType) => {
   return key;
 };
 
-export const getFromR2 = async (key) => {
+export const getFromStorage = async (key) => {
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
     .download(key);
 
   if (error) throw error;
   return data;
-};
-
-export const existsInR2 = async (key) => {
-  const { data } = await supabase.storage
-    .from(BUCKET_NAME)
-    .list(key.split('/').slice(0, -1).join('/'), {
-      search: key.split('/').pop(),
-    });
-
-  return data && data.length > 0;
 };
 
 export const getPublicUrl = (key) => {
@@ -39,12 +29,30 @@ export const getPublicUrl = (key) => {
   return data.publicUrl;
 };
 
-export const deleteFromR2 = async (key) => {
+export const deleteFromStorage = async (key) => {
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .remove([key]);
 
   if (error) throw error;
+};
+
+export const deleteMultipleFromStorage = async (keys) => {
+  if (keys.length === 0) return;
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .remove(keys);
+
+  if (error) throw error;
+};
+
+export const listByPrefix = async (prefix) => {
+  const { data, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(prefix);
+
+  if (error) throw error;
+  return data || [];
 };
 
 export const getTransformedKey = (imageId, width, format) => {

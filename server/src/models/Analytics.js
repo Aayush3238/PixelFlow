@@ -6,6 +6,11 @@ const analyticsSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
     uploads: {
       type: Number,
       default: 0,
@@ -26,6 +31,6 @@ const analyticsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-analyticsSchema.index({ date: 1 }, { unique: true });
+analyticsSchema.index({ date: 1, ownerId: 1 }, { unique: true });
 
 export default mongoose.model('Analytics', analyticsSchema);

@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const data = await auth.login({ email, password });
     localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
     setUser(data.user);
     return data;
   };
@@ -29,12 +30,14 @@ export function AuthProvider({ children }) {
   const register = async (email, password, name) => {
     const data = await auth.register({ email, password, name });
     localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
     setUser(data.user);
     return data;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setUser(null);
   };
 

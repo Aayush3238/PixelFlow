@@ -10,6 +10,5 @@ const supabase = createClient(
 );
 
 export const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME;
-export const SUPABASE_URL = process.env.SUPABASE_URL;
 
 export default supabase;

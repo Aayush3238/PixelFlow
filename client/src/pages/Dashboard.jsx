@@ -1,36 +1,47 @@
 import { useState, useEffect } from 'react';
-import { dashboard } from '../api/client';
-import { HardDrive, Download, BarChart3, Zap } from 'lucide-react';
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function formatNumber(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-  return n.toString();
-}
+import { auth, dashboard } from '../api/client';
+import { formatBytes, formatNumber } from '../utils/format';
+import Skeleton from '../components/Skeleton';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [apiKeys, setApiKeys] = useState([]);
+  const [newKey, setNewKey] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    dashboard.stats()
-      .then(setStats)
+    Promise.all([dashboard.stats(), auth.apiKeys().catch(() => ({ keys: [] }))])
+      .then(([statsData, keysData]) => {
+        setStats(statsData);
+        setApiKeys(keysData.keys || []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ padding: 32, color: 'var(--text-muted)' }}>Loading...</div>;
+  if (loading) return (
+    <div>
+      <div className="page-header"><Skeleton className="title-skeleton" /></div>
+      <div className="stats-grid">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="stat-skeleton" />)}</div>
+      <Skeleton className="chart-skeleton" />
+    </div>
+  );
   if (!stats) return <div style={{ padding: 32, color: 'var(--text-muted)' }}>Failed to load stats</div>;
 
   const maxRequests = Math.max(...stats.chartData.map(d => d.requests), 1);
+
+  const createApiKey = async () => {
+    const data = await auth.createApiKey('Dashboard key');
+    setNewKey(data.key);
+    setApiKeys((prev) => [data.apiKey, ...prev]);
+  };
+
+  const deleteAccount = async () => {
+    if (!confirm('Delete your account and all images? This cannot be undone.')) return;
+    await auth.deleteAccount();
+    localStorage.clear();
+    window.location.href = '/register';
+  };
 
   return (
     <div>
@@ -73,6 +84,27 @@ export default function Dashboard() {
         <div className="chart-labels">
           <span>30 days ago</span>
           <span>Today</span>
+        </div>
+      </div>
+
+      <div className="settings-grid">
+        <div className="card">
+          <h3 style={{ fontSize: 14, marginBottom: 12 }}>API Keys</h3>
+          {newKey && <div className="alert" style={{ wordBreak: 'break-all' }}>{newKey}</div>}
+          <button className="btn btn-primary" onClick={createApiKey}>Create API Key</button>
+          <div className="key-list">
+            {apiKeys.map((key) => (
+              <div key={key._id || key.id}>
+                <span>{key.name} ({key.prefix}...)</span>
+                <span>{key.lastUsedAt ? `Used ${new Date(key.lastUsedAt).toLocaleDateString()}` : 'Never used'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card">
+          <h3 style={{ fontSize: 14, marginBottom: 12 }}>Account</h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 14 }}>Delete your account, images, analytics, and API keys.</p>
+          <button className="btn btn-danger" onClick={deleteAccount}>Delete Account</button>
         </div>
       </div>
     </div>

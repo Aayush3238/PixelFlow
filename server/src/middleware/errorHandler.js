@@ -1,5 +1,7 @@
+import logger from '../utils/logger.js';
+
 export const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+  logger.error('Unhandled error', { error: err.message, stack: err.stack });
 
   if (err.name === 'MulterError') {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -18,6 +20,6 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   res.status(err.statusCode || 500).json({
-    error: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Internal server error'),
   });
 };

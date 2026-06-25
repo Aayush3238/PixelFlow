@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { deliverImage } from '../controllers/deliveryController.js';
+import { deliverImage, getImageMeta } from '../controllers/deliveryController.js';
+import { rateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.get('/:imageId', deliverImage);
+router.get('/:imageId/meta', rateLimiter, getImageMeta);
+router.get('/:imageId', rateLimiter, deliverImage);
 
 export default router;

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, Upload, Images, LogOut } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -13,7 +14,10 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">PixelFlow</div>
+      <div className="sidebar-brand">
+        <span>PixelFlow</span>
+        <ThemeToggle />
+      </div>
       <nav>
         <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>
           <LayoutDashboard size={18} /> Dashboard
