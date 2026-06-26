@@ -90,17 +90,22 @@ app.use(errorHandler);
 let server;
 
 const start = async () => {
+  server = app.listen(PORT, () => {
+    logger.info(`PixelFlow server running on port ${PORT}`);
+  });
+
   try {
     await connectDB();
+    logger.info('MongoDB connected');
+  } catch (error) {
+    logger.error('Failed to connect to MongoDB', { error: error.message });
+  }
+
+  try {
     await redis.ping();
     logger.info('Redis connected');
-
-    server = app.listen(PORT, () => {
-      logger.info(`PixelFlow server running on port ${PORT}`);
-    });
   } catch (error) {
-    logger.error('Failed to start server', { error: error.message });
-    process.exit(1);
+    logger.error('Failed to connect to Redis', { error: error.message });
   }
 };
 
