@@ -149,7 +149,7 @@ export default function Library() {
 
       <div className="library-toolbar">
         <div className="search-box">
-          <Search size={16} />
+          <Search size={15} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search images, tags, folders" />
         </div>
         <select value={folder} onChange={(e) => setFolder(e.target.value)}>
@@ -157,7 +157,7 @@ export default function Library() {
           {folders.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
         <button className="btn btn-ghost" onClick={handleBulkDelete} disabled={!selectedCount}>
-          <Trash2 size={14} /> Delete {selectedCount || ''}
+          <Trash2 size={14} /> {selectedCount ? `Delete (${selectedCount})` : 'Delete'}
         </button>
       </div>
 
@@ -165,8 +165,8 @@ export default function Library() {
         <div className="image-grid">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="image-skeleton" />)}</div>
       ) : imagesList.length === 0 ? (
         <div className="empty-state">
-          <p>No images found.</p>
-          <a href="/upload" className="btn btn-primary" style={{ marginTop: 16, display: 'inline-flex' }}>Upload images</a>
+          <p style={{ marginBottom: 16 }}>No images found.</p>
+          <a href="/upload" className="btn btn-primary" style={{ display: 'inline-flex' }}>Upload images</a>
         </div>
       ) : (
         <>
@@ -176,7 +176,7 @@ export default function Library() {
               return (
                 <div key={img.imageId} className={`image-card ${selectedIds.has(img.imageId) ? 'selected' : ''}`}>
                   <button className="select-btn" onClick={() => toggleSelected(img.imageId)} title="Select image">
-                    <CheckSquare size={16} />
+                    <CheckSquare size={14} />
                   </button>
                   <ResponsiveImage
                     imageId={img.imageId}
@@ -189,7 +189,7 @@ export default function Library() {
                   />
                   <div className="info">
                     <div className="name">{img.originalName}</div>
-                    <div className="meta">{formatBytes(img.originalSize)} | {img.width}x{img.height}</div>
+                    <div className="meta">{formatBytes(img.originalSize)} &middot; {img.width}x{img.height}</div>
                     {!!img.tags?.length && <div className="tags">{img.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}
                   </div>
                   <div className="actions">
@@ -239,9 +239,9 @@ export default function Library() {
         const md = `![${shareImage.originalName}](${shareUrl})`;
         const html = `<img src="${shareUrl}" alt="${escapeHtml(shareImage.originalName)}">`;
         const snippets = [
-          { label: 'Direct URL', value: shareUrl, icon: <Link size={14} /> },
-          { label: 'Markdown', value: md, icon: <Code size={14} /> },
-          { label: 'HTML', value: html, icon: <Code size={14} /> },
+          { label: 'Direct URL', value: shareUrl, icon: <Link size={13} /> },
+          { label: 'Markdown', value: md, icon: <Code size={13} /> },
+          { label: 'HTML', value: html, icon: <Code size={13} /> },
         ];
         return (
           <div className="preview-modal" onClick={() => setShareImage(null)}>
@@ -264,7 +264,7 @@ export default function Library() {
                           setTimeout(() => setCopiedField(''), 2000);
                         }}
                       >
-                        {copiedField === s.label ? <><CheckSquare size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                        {copiedField === s.label ? <><CheckSquare size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
                       </button>
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export default function Library() {
           </div>
         );
       })()}
-      {toast && <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#22c55e', color: '#fff', padding: '8px 20px', borderRadius: 8, fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>{toast}</div>}
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }

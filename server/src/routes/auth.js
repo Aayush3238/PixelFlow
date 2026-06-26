@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import passport from 'passport';
 import { body } from 'express-validator';
 import {
   register,
@@ -9,6 +10,7 @@ import {
   createApiKey,
   listApiKeys,
   deleteApiKey,
+  googleCallback,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -47,5 +49,16 @@ router.get('/api-keys', protect, listApiKeys);
 router.post('/api-keys', protect, createApiKey);
 router.delete('/api-keys/:keyId', protect, deleteApiKey);
 router.delete('/account', protect, deleteAccount);
+
+router.get(
+  '/google',
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=auth_failed' }),
+  googleCallback
+);
 
 export default router;

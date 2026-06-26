@@ -5,9 +5,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import OfflineBanner from './components/OfflineBanner';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import UploadPage from './pages/Upload';
 import Library from './pages/Library';
+import About from './pages/About';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -37,9 +39,11 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><AppLayout><UploadPage /></AppLayout></ProtectedRoute>} />
         <Route path="/library" element={<ProtectedRoute><AppLayout><Library /></AppLayout></ProtectedRoute>} />
+        <Route path="/about" element={<ProtectedRoute><AppLayout><About /></AppLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </ErrorBoundary>

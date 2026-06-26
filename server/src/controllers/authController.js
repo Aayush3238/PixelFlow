@@ -42,7 +42,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -63,6 +63,20 @@ export const login = async (req, res) => {
 
 export const getMe = async (req, res) => {
   res.json({ user: req.user });
+};
+
+export const googleCallback = async (req, res) => {
+  try {
+    const token = generateToken(req.user._id);
+    const refreshToken = generateRefreshToken(req.user._id);
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
+    const params = new URLSearchParams({ token, refreshToken });
+    res.redirect(`${clientUrl}/auth/callback?${params.toString()}`);
+  } catch (error) {
+    logger.error('Google callback failed', { error: error.message });
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
+    res.redirect(`${clientUrl}/login?error=auth_failed`);
+  }
 };
 
 export const refresh = async (req, res) => {

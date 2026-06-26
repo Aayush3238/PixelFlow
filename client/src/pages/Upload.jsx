@@ -137,18 +137,18 @@ export default function UploadPage() {
                 {previews.map((preview) => <img key={preview} src={preview} alt="" />)}
               </div>
             ) : (
-              <div className="icon"><UploadIcon size={48} /></div>
+              <div className="icon"><UploadIcon size={40} strokeWidth={1.5} /></div>
             )}
             <p>{files.length ? `${files.length} file${files.length > 1 ? 's' : ''} selected` : 'Drop images here or click to browse'}</p>
             <p className="hint">PNG, JPG, WebP, AVIF, GIF, TIFF up to 10MB each</p>
           </div>
 
           <div className="url-upload">
-            <Link size={16} />
+            <Link size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <input
               value={remoteUrl}
               onChange={(e) => setRemoteUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
+              placeholder="Paste image URL to import..."
             />
             <button className="btn btn-ghost" onClick={handleUrlUpload} disabled={uploading || !remoteUrl.trim()}>
               Import
@@ -260,7 +260,7 @@ export default function UploadPage() {
                   <option value="__new__">+ New folder</option>
                 </select>
                 {options.folder && existingFolders.includes(options.folder) && (
-                  <button type="button" className="btn btn-ghost folder-clear" onClick={() => setOptions({ ...options, folder: '' })}>x</button>
+                  <button type="button" className="btn btn-ghost folder-clear" onClick={() => setOptions({ ...options, folder: '' })}>&times;</button>
                 )}
               </div>
             )}

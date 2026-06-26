@@ -2,10 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import passport from 'passport';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import redis from './config/redis.js';
+import { configurePassport } from './config/passport.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import imageRoutes from './routes/images.js';
@@ -17,6 +19,7 @@ import { rateLimiter } from './middleware/rateLimiter.js';
 import mongoose from 'mongoose';
 
 validateEnv();
+configurePassport();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +43,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use(passport.initialize());
 
 app.use('/api/auth', rateLimiter, authRoutes);
 app.use('/api/images', rateLimiter, imageRoutes);

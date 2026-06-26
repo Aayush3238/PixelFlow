@@ -6,6 +6,8 @@ import logger from '../utils/logger.js';
 import crypto from 'crypto';
 
 const WIDTH_PRESETS = [300, 600, 1200];
+const DEFAULT_QUALITY = { avif: 65, webp: 75, jpeg: 80 };
+const SAVE_DATA_QUALITY = { avif: 45, webp: 55, jpeg: 60 };
 
 const snapToPreset = (requested, original) => {
   if (original <= 300) return null;
@@ -28,6 +30,14 @@ export const deliverImage = async (req, res) => {
     const format = forcedFormat && ['avif', 'webp', 'jpeg'].includes(forcedFormat)
       ? forcedFormat
       : detectFormat(req.headers.accept);
+
+    const saveData = req.headers['save-data'] === 'on';
+    const requestedQuality = req.query.q ? parseInt(req.query.q) : null;
+    const quality = requestedQuality
+      ? Math.min(100, Math.max(1, requestedQuality))
+      : saveData
+        ? SAVE_DATA_QUALITY[format]
+        : DEFAULT_QUALITY[format];
 
     if (requestedWidth && (requestedWidth < 10 || requestedWidth > 4000)) {
       return res.status(400).json({ error: 'Width must be between 10 and 4000' });
@@ -93,12 +103,13 @@ export const deliverImage = async (req, res) => {
       return res.send(buffer);
     }
 
-    const result = await getImageFromCacheOrTransform(imageId, width, format);
+    const result = await getImageFromCacheOrTransform(imageId, width, format, quality);
     if (!result) {
       return res.status(404).json({ error: 'Image processing failed' });
     }
 
     res.set('Content-Type', result.contentType);
+    res.set('Vary', 'Accept, Save-Data');
     res.set('Cache-Control', result.fromCache
       ? 'public, max-age=31536000'
       : 'public, max-age=86400'

@@ -12,8 +12,12 @@ const FORMAT_MAP = {
   jpeg: 'image/jpeg',
 };
 
-export const getImageFromCacheOrTransform = async (imageId, width, format) => {
-  const cacheKey = `img:${imageId}:${width}:${format}`;
+const DEFAULT_QUALITY = { avif: 65, webp: 75, jpeg: 80 };
+const SAVE_DATA_QUALITY = { avif: 45, webp: 55, jpeg: 60 };
+
+export const getImageFromCacheOrTransform = async (imageId, width, format, quality) => {
+  const resolvedQuality = quality || DEFAULT_QUALITY[format] || 75;
+  const cacheKey = `img:${imageId}:${width}:${format}:q${resolvedQuality}`;
 
   try {
     const cached = await redis.get(cacheKey);
@@ -37,13 +41,13 @@ export const getImageFromCacheOrTransform = async (imageId, width, format) => {
 
   switch (format) {
     case 'avif':
-      pipeline = pipeline.avif({ quality: 65, effort: 4 });
+      pipeline = pipeline.avif({ quality: resolvedQuality, effort: 4 });
       break;
     case 'webp':
-      pipeline = pipeline.webp({ quality: 75 });
+      pipeline = pipeline.webp({ quality: resolvedQuality });
       break;
     case 'jpeg':
-      pipeline = pipeline.jpeg({ quality: 80, progressive: true });
+      pipeline = pipeline.jpeg({ quality: resolvedQuality, progressive: true });
       break;
   }
 

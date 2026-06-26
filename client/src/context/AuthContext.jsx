@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -8,14 +9,28 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const refreshToken = params.get('refreshToken');
+
+    if (token && refreshToken) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
       auth.me()
         .then((data) => setUser(data.user))
         .catch(() => localStorage.removeItem('token'))
         .finally(() => setLoading(false));
     } else {
-      setLoading(false);
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        auth.me()
+          .then((data) => setUser(data.user))
+          .catch(() => localStorage.removeItem('token'))
+          .finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
